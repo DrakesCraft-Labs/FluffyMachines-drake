@@ -104,10 +104,10 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>com.github.Slimefun</groupId>
-            <artifactId>Slimefun4</artifactId>
-            <version>RC-37</version>
+                <dependency>
+            <groupId>dev.drake</groupId>
+            <artifactId>Slimefun</artifactId>
+            <version>5.0-Drake-1.21.1</version>
             <scope>provided</scope>
         </dependency>
 
@@ -138,10 +138,10 @@
             <version>3.0.2</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
+                <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.32</version>
+            <version>1.18.34</version>
             <scope>provided</scope>
         </dependency>
 
@@ -159,3 +159,4 @@
         </dependency>
     </dependencies>
 </project>
+
