@@ -29,12 +29,14 @@ final class EnderChestNodeUtils {
                 return null;
             }
 
-            // El ender chest esta separado por mundo, de modo que getEnderChest() devuelve el
-            // del mundo donde esta el jugador y no el del mundo donde esta el nodo. Sin esta
-            // comprobacion un nodo colocado en una modalidad vacia el ender chest de otra, y
-            // basta con que el dueno se pase al Laboratorio --donde los items son gratis-- para
-            // convertir la maquina en un puente entre modalidades.
-            if (!player.getWorld().equals(node.getWorld())) {
+            // El ender chest esta separado por grupo de mundos, de modo que getEnderChest()
+            // devuelve el del grupo donde esta el jugador y no necesariamente el del nodo. Sin
+            // esta comprobacion un nodo colocado en una modalidad vacia el ender chest de otra,
+            // y basta con que el dueno se pase al Laboratorio --donde los items son gratis--
+            // para convertir la maquina en un puente entre modalidades. Comparar el grupo y no
+            // el mundo exacto evita ademas apagar el nodo cuando el dueno solo baja al nether o
+            // al end de su propia modalidad, que comparten el mismo cofre.
+            if (!EnderChestGroups.shareEnderChest(player.getWorld(), node.getWorld())) {
                 return null;
             }
 
