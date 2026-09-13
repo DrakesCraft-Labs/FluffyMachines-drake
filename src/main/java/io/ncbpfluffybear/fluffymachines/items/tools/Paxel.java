@@ -9,8 +9,12 @@ import com.github.drakescraft_labs.slimefun4.utils.tags.SlimefunTag;
 import io.ncbpfluffybear.fluffymachines.FluffyMachines;
 import io.ncbpfluffybear.fluffymachines.utils.FluffyItems;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.bukkit.Bukkit;
@@ -48,10 +52,76 @@ public class Paxel extends SlimefunItem implements Listener, NotPlaceable {
                     Material.BROWN_MUSHROOM_BLOCK, Material.RED_MUSHROOM_BLOCK, Material.BAMBOO, Material.VINE, Material.LECTERN))
     ).flatMap(Set::stream).collect(Collectors.toSet());
 
+    /** Cada cuantos ticks se revisa el bloque apuntado para adelantar el cambio de forma. */
+    private static final long INTERVALO_AJUSTE = 4L;
+
+    /** Alcance del rayo que busca el bloque apuntado, en bloques. */
+    private static final int ALCANCE_MIRA = 6;
+
+    /** Tras golpear una entidad el paxel conserva la forma de hacha durante esta ventana. */
+    private static final long GRACIA_COMBATE_MS = 2000L;
+
+    /** Ultimo golpe a una entidad por jugador; se purga sola en cada barrido. */
+    private final Map<UUID, Long> ultimoCombate = new HashMap<>();
+
     public Paxel(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
         super(category, item, recipeType, recipe);
 
         Bukkit.getPluginManager().registerEvents(this, FluffyMachines.getInstance());
+        Bukkit.getScheduler().runTaskTimer(FluffyMachines.getInstance(), this::ajustarFormaSegunMira,
+                INTERVALO_AJUSTE, INTERVALO_AJUSTE);
+    }
+
+    /**
+     * Adelanta el cambio de forma al bloque que el jugador esta apuntando.
+     *
+     * <p>Cambiar el material del item en {@link #onMine(BlockDamageEvent)} llega tarde: el
+     * cliente ya empezo a picar y, al recibir la actualizacion del slot, reinicia el progreso
+     * de rotura desde cero. Esa es la sensacion de "se atasca" del ticket 358. Ajustando la
+     * forma antes del primer clic el cliente nunca ve cambiar el item mientras pica.
+     */
+    private void ajustarFormaSegunMira() {
+        long ahora = System.currentTimeMillis();
+        purgarCombate(ahora);
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            ItemStack mano = p.getInventory().getItemInMainHand();
+
+            if (!PaxelForm.esFormaDePaxel(mano.getType())) {
+                continue;
+            }
+
+            SlimefunItem sfItem = SlimefunItem.getByItem(mano);
+
+            if (sfItem == null || sfItem != FluffyItems.PAXEL.getItem()) {
+                continue;
+            }
+
+            Long combate = ultimoCombate.get(p.getUniqueId());
+
+            if (combate != null && ahora - combate < GRACIA_COMBATE_MS) {
+                continue;
+            }
+
+            Block objetivo = p.getTargetBlockExact(ALCANCE_MIRA);
+
+            if (objetivo == null) {
+                continue;
+            }
+
+            mano.setType(PaxelForm.formaPara(objetivo.getType(), PaxelForm.esNetherita(mano.getType()),
+                    SlimefunTag.EXPLOSIVE_SHOVEL_BLOCKS::isTagged, axeBlocks));
+        }
+    }
+
+    private void purgarCombate(long ahora) {
+        Iterator<Map.Entry<UUID, Long>> it = ultimoCombate.entrySet().iterator();
+
+        while (it.hasNext()) {
+            if (ahora - it.next().getValue() >= GRACIA_COMBATE_MS) {
+                it.remove();
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -60,38 +130,13 @@ public class Paxel extends SlimefunItem implements Listener, NotPlaceable {
         SlimefunItem sfItem = SlimefunItem.getByItem(p.getInventory().getItemInMainHand());
 
         if (sfItem != null && sfItem == FluffyItems.PAXEL.getItem()) {
-            boolean netherite = false;
             Block b = e.getBlock();
             ItemStack item = p.getInventory().getItemInMainHand();
 
-            Material blockType = b.getType();
-
-            if (item.getType() == Material.NETHERITE_PICKAXE
-                    || item.getType() == Material.NETHERITE_AXE
-                    || item.getType() == Material.NETHERITE_SHOVEL
-            ) {
-                netherite = true;
-            }
-
-            if (SlimefunTag.EXPLOSIVE_SHOVEL_BLOCKS.isTagged(blockType)) {
-                if (netherite) {
-                    item.setType(Material.NETHERITE_SHOVEL);
-                } else {
-                    item.setType(Material.DIAMOND_SHOVEL);
-                }
-            } else if (axeBlocks.contains(blockType)) {
-                if (netherite) {
-                    item.setType(Material.NETHERITE_AXE);
-                } else {
-                    item.setType(Material.DIAMOND_AXE);
-                }
-            } else {
-                if (netherite) {
-                    item.setType(Material.NETHERITE_PICKAXE);
-                } else {
-                    item.setType(Material.DIAMOND_PICKAXE);
-                }
-            }
+            // Red de seguridad: el barrido de ajustarFormaSegunMira ya suele haber dejado la
+            // forma correcta, y setType no emite nada cuando el material no cambia.
+            item.setType(PaxelForm.formaPara(b.getType(), PaxelForm.esNetherita(item.getType()),
+                    SlimefunTag.EXPLOSIVE_SHOVEL_BLOCKS::isTagged, axeBlocks));
         }
     }
 
@@ -106,16 +151,8 @@ public class Paxel extends SlimefunItem implements Listener, NotPlaceable {
         SlimefunItem sfItem = SlimefunItem.getByItem(item);
 
         if (sfItem instanceof Paxel) {
-
-            boolean netherite = item.getType() == Material.NETHERITE_PICKAXE
-                    || item.getType() == Material.NETHERITE_AXE
-                    || item.getType() == Material.NETHERITE_SHOVEL;
-
-            if (netherite) {
-                item.setType(Material.NETHERITE_AXE);
-            } else {
-                item.setType(Material.DIAMOND_AXE);
-            }
+            ultimoCombate.put(p.getUniqueId(), System.currentTimeMillis());
+            item.setType(PaxelForm.formaDeCombate(PaxelForm.esNetherita(item.getType())));
         }
 
     }
