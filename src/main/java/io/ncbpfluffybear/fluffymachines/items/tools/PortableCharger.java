@@ -203,11 +203,13 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public enum Type {
 
-        SMALL(128, 8),
-        MEDIUM(512, 32),
-        BIG(1024, 64),
-        LARGE(8192, 512),
-        CARBONADO(65526, 4096);
+        // Reescalado 2026-09-15 (pedido de Mr_Em1lio): las gemas de vuelo pasan a
+        // 10240 J, asi que una BIG llena una gema. Velocidad ~1/16 de la capacidad.
+        SMALL(512, 32),
+        MEDIUM(2048, 128),
+        BIG(10240, 640),
+        LARGE(40960, 2560),
+        CARBONADO(131072, 8192);
 
         public final int chargeCapacity;
         public final int chargeSpeed;
