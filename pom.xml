@@ -103,7 +103,7 @@
             <id>mcmmo-repo</id>
             <url>https://nexus.neetgames.com/repository/maven-public</url>
         </repository>
-        <repository><id>drakescraft-labs-maven</id><url>https://drakescraft-labs.github.io/maven-repo/</url></repository>
+        <repository><id>drakescraft-labs-maven</id><url>https://maven.drakescraft.cl/</url></repository>
         <repository>
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
