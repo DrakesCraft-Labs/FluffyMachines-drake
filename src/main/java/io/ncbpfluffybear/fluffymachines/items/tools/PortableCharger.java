@@ -7,8 +7,6 @@ import com.github.drakescraft_labs.slimefun4.implementation.items.SimpleSlimefun
 import com.github.drakescraft_labs.slimefun4.libraries.dough.common.ChatColors;
 import io.ncbpfluffybear.fluffymachines.FluffyMachines;
 import io.ncbpfluffybear.fluffymachines.utils.Utils;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import com.github.drakescraft_labs.slimefun4.api.recipes.RecipeType;
 import com.github.drakescraft_labs.slimefun4.api.items.ItemGroup;
@@ -200,7 +198,6 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
     }
 
     @Getter
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public enum Type {
 
         // Reescalado 2026-09-15 (pedido de Mr_Em1lio): las gemas de vuelo pasan a
